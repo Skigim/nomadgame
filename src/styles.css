@@ -1,0 +1,114 @@
+:root {
+    --bg-color: #1a1a2e;
+    --panel-color: #16213e;
+    --accent-color: #e94560;
+    --text-color: #f1f1f1;
+    --hex-grid-color: #0f3460;
+    --player-color: #4cc9f0;
+    --enemy-color: #f72585;
+    --highlight-move: rgba(76, 201, 240, 0.4);
+    --highlight-attack: rgba(247, 37, 133, 0.4);
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+}
+
+header {
+    width: 100%;
+    padding: 10px 20px;
+    background-color: var(--panel-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    z-index: 10;
+    box-sizing: border-box;
+}
+
+h1 { margin: 0; font-size: 1.2rem; }
+
+.game-info {
+    display: flex;
+    gap: 20px;
+    font-size: 0.9rem;
+    align-items: center;
+}
+
+#turn-indicator {
+    font-weight: bold;
+    padding: 4px 12px;
+    border-radius: 4px;
+    background: var(--player-color);
+    color: #000;
+}
+
+#turn-indicator.enemy-turn {
+    background: var(--enemy-color);
+    color: #fff;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+}
+
+button {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: transform 0.1s, opacity 0.2s;
+}
+
+button:hover { opacity: 0.9; }
+button:active { transform: scale(0.95); }
+button:disabled { background: #555; cursor: not-allowed; opacity: 0.5; }
+
+#game-container {
+    position: relative;
+    flex-grow: 1;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+canvas {
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    border-radius: 4px;
+    background-color: #12121c;
+    touch-action: none;
+}
+
+#ui-overlay {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(22, 33, 62, 0.9);
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    pointer-events: none;
+    text-align: center;
+    min-width: 200px;
+    display: none;
+}
+
+.stat-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.stat-label { color: #888; }
+.stat-val { font-weight: bold; }

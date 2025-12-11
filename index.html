@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hex Strategy</title>
+    <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+
+<header>
+    <div class="game-info">
+        <h1>Hex Tactics</h1>
+        <div id="turn-indicator">Player Turn</div>
+    </div>
+    <div class="controls">
+        <button id="btn-end-turn">End Turn</button>
+        <button id="btn-reset">Reset Game</button>
+    </div>
+</header>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui-overlay">
+        <div id="unit-info">
+            <div class="stat-row">
+                <span class="stat-label">Unit:</span>
+                <span class="stat-val" id="u-type">Infantry</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">HP:</span>
+                <span class="stat-val" id="u-hp">10/10</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Status:</span>
+                <span class="stat-val" id="u-status">Ready</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
