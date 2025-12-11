@@ -13,7 +13,7 @@ A turn-based hex 4X strategy game that delivers empire-building depth in browser
 | System | Status | Notes |
 |--------|--------|-------|
 | Hex Grid & Camera | ✅ Complete | 100x80 board, pan/zoom, viewport culling |
-| Terrain Generation | ✅ Complete | Procedural noise, 6 terrain types |
+| Terrain Generation | ⚠️ Basic | Procedural noise, 6 terrain types |
 | Units & Movement | ✅ Complete | BFS pathfinding with terrain costs |
 | Combat | ⚠️ Basic | Damage only, no terrain/flanking modifiers |
 | Fog of War | ✅ Complete | Per-unit sight, explored memory persists |
