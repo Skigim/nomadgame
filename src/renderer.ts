@@ -1,9 +1,32 @@
+/**
+ * Canvas 2D rendering engine
+ * 
+ * Handles all drawing operations for the game:
+ * - Hex grid and terrain
+ * - Units and structures with owner-colored sprites
+ * - UI overlays (movement ranges, attack targets, selection)
+ * - Fog of war visualization
+ * 
+ * Uses pre-loaded and recolored sprites for performance.
+ * Implements viewport culling to only render visible hexes.
+ * 
+ * Pure client-side rendering - no server communication.
+ * 
+ * @module renderer
+ * @todo Add sprite animation system
+ * @todo Implement particle effects for combat
+ * @todo Add minimap rendering
+ */
+
 import type { Unit, Structure, GameState, HexTile, Owner } from './types';
 import { HEX_SIZE, COLORS, TERRAIN_COLORS } from './constants';
 import { hexToPixel } from './hex-math';
 import { camera, worldToScreen, getVisibleHexRange } from './camera';
 
-// Map unit types to asset filenames
+/**
+ * Map unit types to sprite asset file paths
+ * Each unit type must have a corresponding PNG in /assets/
+ */
 const UNIT_SPRITES: Record<string, string> = {
     'Warrior': '/assets/warrior.png',
     'Spearman': '/assets/spearman.png',
@@ -13,12 +36,17 @@ const UNIT_SPRITES: Record<string, string> = {
     'Slinger': '/assets/slinger.png'
 };
 
-// Map structure types to asset filenames
+/**
+ * Map structure types to sprite asset file paths
+ */
 const STRUCTURE_SPRITES: Record<string, string> = {
     'City': '/assets/city.png'
 };
 
-// Owner colors for recoloring sprites
+/**
+ * Owner color palette for sprite recoloring
+ * Maps owners to their team colors
+ */
 const OWNER_COLORS: Record<Owner, string> = {
     'player': COLORS.player,
     'enemy1': COLORS.enemy1,
@@ -27,11 +55,20 @@ const OWNER_COLORS: Record<Owner, string> = {
     'enemy4': COLORS.enemy4
 };
 
-// Cache for recolored sprite canvases: Map<"unitType_owner", HTMLCanvasElement>
+/**
+ * Cache for recolored sprite canvases
+ * Key format: "unitType_owner" -> pre-rendered canvas
+ * Prevents re-rendering sprites every frame
+ */
 const recoloredSpriteCache: Map<string, HTMLCanvasElement> = new Map();
 
 /**
- * Load an image
+ * Load an image from a URL
+ * 
+ * Wraps the Image API in a Promise for async/await usage.
+ * 
+ * @param src - Image file path
+ * @returns Promise resolving to loaded HTMLImageElement
  */
 function loadImage(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
@@ -43,7 +80,19 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Recolor a sprite and return a canvas with the result
+ * Recolor a sprite image and return as a canvas
+ * 
+ * Creates an off-screen canvas with the sprite recolored to match owner color.
+ * The sprite format assumes white icons on a colored circular background.
+ * 
+ * Algorithm:
+ * - Pixels above brightness threshold (>180) = keep white (the icon)
+ * - Pixels below threshold = recolor to target color (the background circle)
+ * 
+ * @param image - Source sprite image
+ * @param targetColor - Hex color to recolor background to (e.g., "#4cc9f0")
+ * @param size - Canvas size in pixels
+ * @returns Canvas element with recolored sprite
  */
 function createRecoloredSprite(
     image: HTMLImageElement,
@@ -95,11 +144,22 @@ function createRecoloredSprite(
     return canvas;
 }
 
-// Track if sprites have been loaded
+// Track sprite loading state to prevent duplicate loads
 let spritesLoaded = false;
 
 /**
- * Preload all unit and structure sprites and create recolored versions for each owner
+ * Preload all unit and structure sprites with recoloring
+ * 
+ * Loads all sprite images and creates recolored versions for each owner.
+ * This is done once at game startup to avoid rendering delays.
+ * 
+ * Creates cache entries like:
+ * - "Warrior_player"
+ * - "Warrior_enemy1"
+ * - "City_player"
+ * - etc.
+ * 
+ * @returns Promise that resolves when all sprites are loaded and cached
  */
 export async function preloadSprites(): Promise<void> {
     // Only load sprites once
@@ -127,7 +187,11 @@ export async function preloadSprites(): Promise<void> {
 }
 
 /**
- * Get cached recolored sprite for a unit type and owner
+ * Get a cached recolored sprite canvas
+ * 
+ * @param unitType - Type of unit/structure ("Warrior", "City", etc.)
+ * @param owner - Owner for color selection
+ * @returns Cached canvas element, or null if not found (fallback to basic rendering)
  */
 function getCachedSprite(unitType: string, owner: Owner): HTMLCanvasElement | null {
     const cacheKey = `${unitType}_${owner}`;
@@ -135,7 +199,17 @@ function getCachedSprite(unitType: string, owner: Owner): HTMLCanvasElement | nu
 }
 
 /**
- * Draw a single hexagon (using screen coordinates with camera offset)
+ * Draw a single hexagon with camera transformation
+ * 
+ * Converts grid coordinates to world pixel coordinates, then to screen coordinates.
+ * Draws a pointy-topped hexagon using the current camera zoom and position.
+ * 
+ * @param ctx - Canvas 2D rendering context
+ * @param col - Hex column position
+ * @param row - Hex row position
+ * @param fillStyle - Fill color (null for no fill)
+ * @param strokeStyle - Stroke color (default: grid color)
+ * @param lineWidth - Line width in pixels (default: 1)
  */
 export function drawHex(
     ctx: CanvasRenderingContext2D,
@@ -175,7 +249,17 @@ export function drawHex(
 }
 
 /**
- * Draw a unit on the canvas
+ * Draw a unit on the canvas with sprite and status overlays
+ * 
+ * Renders (in order):
+ * 1. Glow effect if unit is selected
+ * 2. Owner-colored sprite (or colored circle fallback)
+ * 3. HP bar showing health status
+ * 4. Exhaustion overlay if unit has no actions remaining
+ * 
+ * @param ctx - Canvas 2D rendering context
+ * @param unit - Unit to render
+ * @param selectedUnit - Currently selected unit (for glow effect)
  */
 export function drawUnit(
     ctx: CanvasRenderingContext2D,
@@ -239,7 +323,13 @@ export function drawUnit(
 }
 
 /**
- * Draw a structure on the canvas
+ * Draw a structure (city, fort, etc.) on the canvas
+ * 
+ * Similar to drawUnit but for buildings.
+ * Renders sprite and HP bar.
+ * 
+ * @param ctx - Canvas 2D rendering context
+ * @param structure - Structure to render
  */
 export function drawStructure(
     ctx: CanvasRenderingContext2D,
@@ -288,7 +378,25 @@ export function drawStructure(
 }
 
 /**
- * Main render function
+ * Main render function - draws the complete game frame
+ * 
+ * Rendering order (painter's algorithm, back to front):
+ * 1. Dark background
+ * 2. Terrain hexes (with fog of war)
+ * 3. Movement/attack overlay highlights
+ * 4. Structures (sorted by row for proper overlap)
+ * 5. Units (sorted by row for proper overlap)
+ * 
+ * Uses viewport culling to only render visible hexes for performance.
+ * 
+ * Fog of war rendering:
+ * - Unexplored: Draw black hex (no information)
+ * - Explored but not visible: Draw terrain with dark overlay
+ * - Visible: Draw terrain and units normally
+ * 
+ * @param ctx - Canvas 2D rendering context
+ * @param canvas - Canvas element (for dimensions)
+ * @param gameState - Current game state to render
  */
 export function render(
     ctx: CanvasRenderingContext2D,

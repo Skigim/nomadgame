@@ -1,8 +1,20 @@
+/**
+ * Camera and viewport management
+ * 
+ * Handles camera state for panning, zooming, and coordinate transformations.
+ * Provides viewport culling to optimize rendering by only drawing visible hexes.
+ * 
+ * Pure client-side module - all camera state is local to the player's view.
+ * 
+ * @module camera
+ */
+
 import type { Camera, Pixel } from './types';
 import { HEX_WIDTH, HEX_HEIGHT, BOARD_COLS, BOARD_ROWS } from './constants';
 
 /**
- * Global camera state
+ * Global camera state - controls viewport position and zoom level
+ * Mutated by panning and zooming functions
  */
 export const camera: Camera = {
     x: 0,
@@ -11,7 +23,12 @@ export const camera: Camera = {
 };
 
 /**
- * Get world bounds based on board size
+ * Calculate the total world dimensions based on board size
+ * 
+ * Returns the pixel width and height of the entire game board.
+ * Used for clamping camera bounds to prevent scrolling into empty space.
+ * 
+ * @returns World dimensions in pixels
  */
 export function getWorldBounds(): { width: number; height: number } {
     const width = BOARD_COLS * HEX_WIDTH + HEX_WIDTH / 2;
@@ -20,7 +37,14 @@ export function getWorldBounds(): { width: number; height: number } {
 }
 
 /**
- * Convert world coordinates to screen coordinates
+ * Transform world coordinates to screen coordinates
+ * 
+ * Applies camera offset and zoom to convert from world space (hex positions)
+ * to screen space (canvas pixels). Used for rendering.
+ * 
+ * @param worldX - X coordinate in world space
+ * @param worldY - Y coordinate in world space
+ * @returns Screen pixel coordinates
  */
 export function worldToScreen(worldX: number, worldY: number): Pixel {
     return {
@@ -30,7 +54,14 @@ export function worldToScreen(worldX: number, worldY: number): Pixel {
 }
 
 /**
- * Convert screen coordinates to world coordinates
+ * Transform screen coordinates to world coordinates
+ * 
+ * Applies inverse camera transformation to convert from screen pixels
+ * (e.g., mouse position) to world space. Used for input handling.
+ * 
+ * @param screenX - X coordinate in screen space (canvas pixels)
+ * @param screenY - Y coordinate in screen space (canvas pixels)
+ * @returns World coordinates
  */
 export function screenToWorld(screenX: number, screenY: number): Pixel {
     return {
@@ -40,7 +71,15 @@ export function screenToWorld(screenX: number, screenY: number): Pixel {
 }
 
 /**
- * Pan the camera by a delta amount
+ * Pan the camera by a delta amount with bounds clamping
+ * 
+ * Moves the camera view and clamps to world bounds with some overshoot allowed
+ * for better UX at edges. Mutates the global camera state.
+ * 
+ * @param dx - Change in X position (positive = pan right)
+ * @param dy - Change in Y position (positive = pan down)
+ * @param canvasWidth - Current canvas width in pixels
+ * @param canvasHeight - Current canvas height in pixels
  */
 export function panCamera(dx: number, dy: number, canvasWidth: number, canvasHeight: number): void {
     const bounds = getWorldBounds();
@@ -62,7 +101,15 @@ export function panCamera(dx: number, dy: number, canvasWidth: number, canvasHei
 }
 
 /**
- * Center camera on a specific world position
+ * Center the camera on a specific world position
+ * 
+ * Snaps the camera so the given world coordinates are centered in the viewport.
+ * Useful for focusing on units, cities, or other points of interest.
+ * 
+ * @param worldX - World X coordinate to center on
+ * @param worldY - World Y coordinate to center on
+ * @param canvasWidth - Current canvas width in pixels
+ * @param canvasHeight - Current canvas height in pixels
  */
 export function centerCameraOn(worldX: number, worldY: number, canvasWidth: number, canvasHeight: number): void {
     const viewWidth = canvasWidth / camera.zoom;
@@ -76,7 +123,14 @@ export function centerCameraOn(worldX: number, worldY: number, canvasWidth: numb
 }
 
 /**
- * Get visible hex range for culling (which hexes are on screen)
+ * Calculate which hex range is currently visible in the viewport
+ * 
+ * Used for rendering optimization (viewport culling). Only hexes within this
+ * range need to be drawn. Includes padding to catch partially-visible hexes.
+ * 
+ * @param canvasWidth - Current canvas width in pixels
+ * @param canvasHeight - Current canvas height in pixels
+ * @returns Visible hex coordinate bounds
  */
 export function getVisibleHexRange(canvasWidth: number, canvasHeight: number): {
     minCol: number;
@@ -99,7 +153,10 @@ export function getVisibleHexRange(canvasWidth: number, canvasHeight: number): {
 }
 
 /**
- * Reset camera to default position
+ * Reset camera to default position and zoom
+ * 
+ * Returns camera to top-left origin with 1:1 zoom.
+ * Used when starting a new game or resetting view.
  */
 export function resetCamera(): void {
     camera.x = 0;

@@ -1,3 +1,15 @@
+/**
+ * Main entry point and event handling
+ * 
+ * Initializes the game, sets up all event listeners, and manages the game loop.
+ * Coordinates between all other modules (state, rendering, AI, input).
+ * 
+ * Uses window-level globals to survive Vite HMR (Hot Module Replacement)
+ * without duplicating listeners or reinitializing state unnecessarily.
+ * 
+ * @module main
+ */
+
 import { pixelToHex, hexToPixel } from './hex-math';
 import { 
     gameState, 
@@ -16,37 +28,64 @@ import { render, preloadSprites } from './renderer';
 import { executeAITurn } from './ai';
 import { camera, panCamera, centerCameraOn, screenToWorld, resetCamera } from './camera';
 
-// Extend Window interface for our global state
+/**
+ * Extend Window interface to add HMR persistence flags
+ * These prevent duplicate initialization during hot reload
+ */
 declare global {
     interface Window {
+        /** Has game been initialized (prevents duplicate init) */
         __GAME_INITIALIZED__?: boolean;
+        /** Have event listeners been added (prevents duplicates) */
         __GAME_LISTENERS_ADDED__?: boolean;
+        /** RequestAnimationFrame ID for camera panning loop */
         __GAME_PANNING_LOOP_ID__?: number;
+        /** Set of currently pressed keys (for WASD camera panning) */
         __GAME_KEYS_PRESSED__?: Set<string>;
     }
 }
 
-// DOM Elements
+// ============ DOM Element References ============
+/** Main game canvas element */
 const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
+/** Canvas 2D rendering context */
 const ctx = canvas.getContext('2d')!;
+/** UI overlay container for unit info */
 const uiOverlay = document.getElementById('ui-overlay') as HTMLDivElement;
+/** Turn indicator text ("Player Turn" / "Enemy Turn") */
 const turnIndicator = document.getElementById('turn-indicator') as HTMLDivElement;
+/** End Turn button */
 const btnEndTurn = document.getElementById('btn-end-turn') as HTMLButtonElement;
+/** Reset Game button */
 const btnReset = document.getElementById('btn-reset') as HTMLButtonElement;
 
-// Use window-level key tracking to persist across HMR
+/**
+ * Use window-level key tracking to persist across HMR
+ * Tracks which keyboard keys are currently pressed for camera panning
+ */
 if (!window.__GAME_KEYS_PRESSED__) {
     window.__GAME_KEYS_PRESSED__ = new Set<string>();
 }
 const keysPressed = window.__GAME_KEYS_PRESSED__;
 
-// Camera panning state (local, reset is fine)
+// ============ Camera Panning State ============
+/** Whether user is currently dragging to pan camera */
 let isDragging = false;
+/** Last mouse X position (for drag delta calculation) */
 let lastMouseX = 0;
+/** Last mouse Y position (for drag delta calculation) */
 let lastMouseY = 0;
 
 /**
- * Update UI elements based on game state
+ * Update all UI elements based on current game state
+ * 
+ * Updates:
+ * - Turn indicator text and styling
+ * - End Turn button enabled state
+ * - Selected unit info panel (type, HP, actions remaining)
+ * - Settle action hint for settlers
+ * 
+ * Called after any game state change that affects UI.
  */
 function updateUI(): void {
     if (gameState.turn === 'player') {
@@ -82,14 +121,16 @@ function updateUI(): void {
 }
 
 /**
- * Main draw function
+ * Trigger a render frame
+ * Wrapper around the renderer module's render function
  */
 function draw(): void {
     render(ctx, canvas, gameState);
 }
 
 /**
- * Resize canvas to fit window
+ * Resize canvas to match window dimensions
+ * Called on window resize and game initialization
  */
 function resizeCanvas(): void {
     canvas.width = window.innerWidth;
@@ -98,7 +139,18 @@ function resizeCanvas(): void {
 }
 
 /**
- * Handle hex selection/click
+ * Handle hex click/selection logic
+ * 
+ * Game flow:
+ * 1. Click friendly unit -> Select it and show valid moves/attacks
+ * 2. Click valid move hex -> Move selected unit there
+ * 3. Click valid attack hex -> Attack that target
+ * 4. Click empty space -> Deselect
+ * 
+ * Only processes clicks during player turn and when not animating.
+ * 
+ * @param col - Clicked hex column
+ * @param row - Clicked hex row
  */
 function handleSelection(col: number, row: number): void {
     if (gameState.turn !== 'player' || gameState.isAnimating) return;
@@ -153,7 +205,8 @@ function handleSelection(col: number, row: number): void {
 }
 
 /**
- * Check and handle win/lose conditions
+ * Check for victory/defeat and show alert if game ended
+ * Auto-restarts game after alert is dismissed
  */
 function handleWinCheck(): void {
     const result = checkWinCondition();
@@ -171,7 +224,10 @@ function handleWinCheck(): void {
 }
 
 /**
- * Start enemy AI turn
+ * Execute AI turn asynchronously
+ * 
+ * Runs all enemy unit actions with pacing delays.
+ * Triggers re-render and win condition checks after each AI action.
  */
 async function startEnemyTurn(): Promise<void> {
     await executeAITurn(() => {
@@ -182,7 +238,16 @@ async function startEnemyTurn(): Promise<void> {
 }
 
 /**
- * Full game initialization (sprites, state, camera)
+ * Full game initialization sequence
+ * 
+ * Steps:
+ * 1. Load sprites (if not already loaded)
+ * 2. Reset camera to default view
+ * 3. Initialize game state (new board, spawn units)
+ * 4. Center camera on player start position
+ * 5. Resize canvas and render first frame
+ * 
+ * Called on page load and when resetting the game.
  */
 async function fullInitGame(): Promise<void> {
     await preloadSprites();
@@ -201,8 +266,17 @@ async function fullInitGame(): Promise<void> {
     updateUI();
 }
 
-// ============ Event Handlers (defined as named functions for potential cleanup) ============
+// ============ Event Handlers ============
+// Named functions for potential cleanup and debugging
 
+/**
+ * Handle mouse down events
+ * 
+ * Left click (button 0): Select units or execute commands
+ * Middle/Right click (button 1/2): Start camera panning
+ * 
+ * @param e - Mouse event
+ */
 function onMouseDown(e: MouseEvent): void {
     const rect = canvas.getBoundingClientRect();
     const screenX = e.clientX - rect.left;
@@ -228,6 +302,12 @@ function onMouseDown(e: MouseEvent): void {
     }
 }
 
+/**
+ * Handle mouse move events
+ * Pans camera when dragging is active
+ * 
+ * @param e - Mouse event
+ */
 function onMouseMove(e: MouseEvent): void {
     if (!isDragging) return;
     
@@ -246,14 +326,32 @@ function onMouseMove(e: MouseEvent): void {
     draw();
 }
 
+/**
+ * Handle mouse up events
+ * Ends camera dragging
+ */
 function onMouseUp(): void {
     isDragging = false;
 }
 
+/**
+ * Prevent context menu on right click
+ * Right click is used for camera panning
+ * 
+ * @param e - Context menu event
+ */
 function onContextMenu(e: Event): void {
     e.preventDefault();
 }
 
+/**
+ * Handle key down events
+ * 
+ * 'B' key: Found city (if settler selected and location valid)
+ * WASD/Arrow keys: Camera panning (handled in animation loop)
+ * 
+ * @param e - Keyboard event
+ */
 function onKeyDown(e: KeyboardEvent): void {
     keysPressed.add(e.key.toLowerCase());
     
@@ -265,10 +363,24 @@ function onKeyDown(e: KeyboardEvent): void {
     }
 }
 
+/**
+ * Handle key up events
+ * Removes key from pressed set
+ * 
+ * @param e - Keyboard event
+ */
 function onKeyUp(e: KeyboardEvent): void {
     keysPressed.delete(e.key.toLowerCase());
 }
 
+/**
+ * Handle mouse wheel events for zooming
+ * 
+ * Zooms towards mouse cursor position (not center of screen).
+ * Clamps zoom between 0.3x and 2.0x.
+ * 
+ * @param e - Wheel event
+ */
 function onWheel(e: WheelEvent): void {
     e.preventDefault();
     
@@ -289,22 +401,41 @@ function onWheel(e: WheelEvent): void {
     draw();
 }
 
+/**
+ * Handle End Turn button click
+ * Starts AI turn if it's currently the player's turn
+ */
 function onEndTurnClick(): void {
     if (gameState.turn === 'player') {
         startEnemyTurn();
     }
 }
 
+/**
+ * Handle Reset Game button click
+ * Reinitializes complete game state
+ */
 function onResetClick(): void {
     fullInitGame();
 }
 
+/**
+ * Handle window resize events
+ * Adjusts canvas size to match new window dimensions
+ */
 function onResize(): void {
     resizeCanvas();
 }
 
 /**
  * Setup all event listeners (only once)
+ * 
+ * Uses window-level flag to prevent duplicate listeners during HMR.
+ * Attaches listeners for:
+ * - Mouse input (click, drag, wheel)
+ * - Keyboard input (WASD panning, action keys)
+ * - Window resize
+ * - UI buttons
  */
 function setupEventListeners(): void {
     if (window.__GAME_LISTENERS_ADDED__) return;
@@ -326,7 +457,12 @@ function setupEventListeners(): void {
 }
 
 /**
- * Start keyboard panning loop (only once)
+ * Start the keyboard-based camera panning animation loop
+ * 
+ * Runs continuously via requestAnimationFrame, checking for WASD/arrow key presses.
+ * Pans camera smoothly based on which keys are held down.
+ * 
+ * Uses window-level flag to prevent duplicate loops during HMR.
  */
 function startKeyboardPanningLoop(): void {
     // Cancel any existing loop
@@ -336,6 +472,9 @@ function startKeyboardPanningLoop(): void {
     
     const PAN_SPEED = 15;
     
+    /**
+ * Inner loop function - checks keys and pans camera
+     */
     function updateKeyboardPanning(): void {
         let dx = 0;
         let dy = 0;
@@ -356,20 +495,26 @@ function startKeyboardPanningLoop(): void {
     window.__GAME_PANNING_LOOP_ID__ = requestAnimationFrame(updateKeyboardPanning);
 }
 
-// ============ Initialization ============
+// ============ Game Initialization ============
+// Check window-level flag to prevent duplicate initialization during HMR
 
 if (!window.__GAME_INITIALIZED__) {
+    // First-time initialization
     window.__GAME_INITIALIZED__ = true;
     setupEventListeners();
     startKeyboardPanningLoop();
     fullInitGame();
 } else {
-    // HMR reload - just redraw with existing state
+    // HMR reload - just redraw with existing state (don't reinitialize)
     draw();
     updateUI();
 }
 
-// Vite HMR handler
+// ============ Vite HMR Handler ============
+/**
+ * Hot Module Replacement handler
+ * When code changes, redraw instead of full reinit to preserve game state
+ */
 if ((import.meta as any).hot) {
     (import.meta as any).hot.accept(() => {
         // Module was replaced - redraw but don't reinitialize
