@@ -25,7 +25,7 @@ export async function executeAITurn(onUpdate: () => void): Promise<void> {
     gameState.validTargets = [];
     onUpdate();
 
-    const enemies = gameState.units.filter(u => u.owner === 'enemy');
+    const enemies = gameState.units.filter(u => u.owner !== 'player');
     
     for (const unit of enemies) {
         if (unit.hp <= 0) continue;

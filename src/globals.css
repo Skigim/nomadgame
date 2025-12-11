@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm dark theme - slate/stone instead of pure black */
+    --background: 220 15% 13%;        /* Warm dark blue-gray */
+    --foreground: 40 15% 90%;         /* Warm off-white */
+    
+    --card: 220 15% 16%;              /* Slightly lighter cards */
+    --card-foreground: 40 15% 90%;
+    
+    --popover: 220 15% 18%;
+    --popover-foreground: 40 15% 90%;
+    
+    --primary: 175 60% 45%;           /* Teal - matches player color */
+    --primary-foreground: 220 15% 10%;
+    
+    --secondary: 220 15% 22%;         /* Muted slate */
+    --secondary-foreground: 40 15% 85%;
+    
+    --muted: 220 12% 20%;
+    --muted-foreground: 40 10% 60%;
+    
+    --accent: 35 80% 55%;             /* Warm gold accent */
+    --accent-foreground: 220 15% 10%;
+    
+    --destructive: 0 65% 50%;         /* Softer red */
+    --destructive-foreground: 40 15% 95%;
+    
+    --border: 220 12% 25%;
+    --input: 220 12% 22%;
+    --ring: 175 60% 45%;
+    
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

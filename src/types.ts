@@ -1,6 +1,6 @@
 // Type definitions for Hex Tactics game
 
-export type Owner = 'player' | 'enemy';
+export type Owner = 'player' | 'enemy1' | 'enemy2' | 'enemy3' | 'enemy4';
 export type Turn = 'player' | 'enemy';
 
 export type TerrainType = 'plains' | 'forest' | 'mountain' | 'water' | 'sand' | 'swamp';
@@ -73,7 +73,10 @@ export interface GameState {
 export interface Colors {
     gridStroke: string;
     player: string;
-    enemy: string;
+    enemy1: string;
+    enemy2: string;
+    enemy3: string;
+    enemy4: string;
     select: string;
     move: string;
     attack: string;

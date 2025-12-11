@@ -1,3 +1,7 @@
+/* Tailwind base styles */
+@import './globals.css';
+
+/* Game-specific legacy styles */
 :root {
     --bg-color: #1a1a2e;
     --panel-color: #16213e;

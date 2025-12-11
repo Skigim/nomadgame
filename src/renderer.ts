@@ -21,7 +21,10 @@ const STRUCTURE_SPRITES: Record<string, string> = {
 // Owner colors for recoloring sprites
 const OWNER_COLORS: Record<Owner, string> = {
     'player': COLORS.player,
-    'enemy': COLORS.enemy
+    'enemy1': COLORS.enemy1,
+    'enemy2': COLORS.enemy2,
+    'enemy3': COLORS.enemy3,
+    'enemy4': COLORS.enemy4
 };
 
 // Cache for recolored sprite canvases: Map<"unitType_owner", HTMLCanvasElement>
@@ -183,7 +186,7 @@ export function drawUnit(
     const center = worldToScreen(worldCenter.x, worldCenter.y);
     const spriteSize = HEX_SIZE * 1.4 * camera.zoom;
     const scaledHexSize = HEX_SIZE * camera.zoom;
-    const ownerColor = unit.owner === 'player' ? COLORS.player : COLORS.enemy;
+    const ownerColor = OWNER_COLORS[unit.owner];
     
     // Glow for active unit
     if (unit === selectedUnit) {
@@ -246,7 +249,7 @@ export function drawStructure(
     const center = worldToScreen(worldCenter.x, worldCenter.y);
     const spriteSize = HEX_SIZE * 1.4 * camera.zoom;
     const scaledHexSize = HEX_SIZE * camera.zoom;
-    const ownerColor = structure.owner === 'player' ? COLORS.player : COLORS.enemy;
+    const ownerColor = OWNER_COLORS[structure.owner];
 
     // Draw structure sprite from cache
     const cachedSprite = getCachedSprite(structure.type, structure.owner);
@@ -327,7 +330,7 @@ export function render(
                 if (gameState.validTargets.some(t => t.col === q && t.row === r)) {
                     drawHex(ctx, q, r, fill, stroke, lw);
                     fill = COLORS.attack;
-                    stroke = COLORS.enemy;
+                    stroke = COLORS.enemy1;
                     lw = 2;
                 }
                 if (gameState.selectedUnit && 

@@ -1,4 +1,4 @@
-import type { GameState, Unit, Hex, Structure, StructureType } from './types';
+import type { GameState, Unit, Hex, Structure, StructureType, Owner } from './types';
 import { BOARD_COLS, BOARD_ROWS } from './constants';
 import { getNeighbors, getDistance } from './hex-math';
 import { createUnit, resetUnitIdCounter } from './unit';
@@ -19,7 +19,7 @@ let structureIdCounter = 0;
  */
 export function createStructure(
     type: StructureType,
-    owner: 'player' | 'enemy',
+    owner: Owner,
     col: number,
     row: number
 ): Structure {
@@ -66,23 +66,28 @@ export function initGameState(): void {
     gameState.validTargets = [];
     gameState.isAnimating = false;
 
-    // Spawn Player Structures (near top-left spawn area)
-    gameState.structures.push(createStructure('City', 'player', 5, 5));
-    
-    // Spawn Enemy Structures (near bottom-right spawn area)
-    gameState.structures.push(createStructure('City', 'enemy', BOARD_COLS - 6, BOARD_ROWS - 6));
+    // No starting structures - settlers must found cities
+    gameState.structures = [];
 
-    // Spawn Player Units
-    gameState.units.push(createUnit('Warrior', 'player', 6, 4));
-    gameState.units.push(createUnit('Slinger', 'player', 6, 6));
-    gameState.units.push(createUnit('Spearman', 'player', 7, 5));
-    gameState.units.push(createUnit('Scout', 'player', 4, 5));
+    // Spawn Player Units - Starting roster: Settler + Warrior
+    gameState.units.push(createUnit('Settler', 'player', 5, 5));
+    gameState.units.push(createUnit('Warrior', 'player', 6, 5));
     
-    // Spawn Enemy Units
-    gameState.units.push(createUnit('Scout', 'enemy', BOARD_COLS - 7, BOARD_ROWS - 8));
-    gameState.units.push(createUnit('Scout', 'enemy', BOARD_COLS - 7, BOARD_ROWS - 4));
-    gameState.units.push(createUnit('Horseman', 'enemy', BOARD_COLS - 8, BOARD_ROWS - 6));
-    gameState.units.push(createUnit('Warrior', 'enemy', BOARD_COLS - 5, BOARD_ROWS - 6));
+    // Spawn Enemy 1 Units (bottom-right)
+    gameState.units.push(createUnit('Settler', 'enemy1', BOARD_COLS - 6, BOARD_ROWS - 6));
+    gameState.units.push(createUnit('Warrior', 'enemy1', BOARD_COLS - 7, BOARD_ROWS - 6));
+    
+    // Spawn Enemy 2 Units (top-right)
+    gameState.units.push(createUnit('Settler', 'enemy2', BOARD_COLS - 6, 6));
+    gameState.units.push(createUnit('Warrior', 'enemy2', BOARD_COLS - 7, 6));
+    
+    // Spawn Enemy 3 Units (bottom-left)
+    gameState.units.push(createUnit('Settler', 'enemy3', 6, BOARD_ROWS - 6));
+    gameState.units.push(createUnit('Warrior', 'enemy3', 5, BOARD_ROWS - 6));
+    
+    // Spawn Enemy 4 Units (center)
+    gameState.units.push(createUnit('Settler', 'enemy4', Math.floor(BOARD_COLS / 2), Math.floor(BOARD_ROWS / 2)));
+    gameState.units.push(createUnit('Warrior', 'enemy4', Math.floor(BOARD_COLS / 2) - 1, Math.floor(BOARD_ROWS / 2)));
     
     // Calculate initial visibility
     updateVisibility();
@@ -182,28 +187,14 @@ export function moveUnit(unit: Unit, col: number, row: number): void {
     }
 }
 
-/**
- * Execute an attack from attacker to defender
- */
-export function attackUnit(attacker: Unit, defender: Unit): void {
-    defender.hp -= attacker.damage;
-    attacker.hasActed = true;
-    
-    if (defender.hp <= 0) {
-        gameState.units = gameState.units.filter(u => u !== defender);
-    }
-    
-    // Deselect after attacking (turn complete for this unit)
-    gameState.selectedUnit = null;
-    gameState.validMoves = [];
-    gameState.validTargets = [];
-}
+// Re-export action functions from actions module
+export { attackUnit, canSettle, settleCity } from './actions';
 
 /**
  * Check win/lose conditions
  */
 export function checkWinCondition(): 'victory' | 'defeat' | null {
-    const enemies = gameState.units.filter(u => u.owner === 'enemy');
+    const enemies = gameState.units.filter(u => u.owner !== 'player');
     const players = gameState.units.filter(u => u.owner === 'player');
     
     if (enemies.length === 0) {

@@ -8,7 +8,9 @@ import {
     getAttackableTargets,
     moveUnit,
     attackUnit,
-    checkWinCondition
+    checkWinCondition,
+    canSettle,
+    settleCity
 } from './game-state';
 import { render, preloadSprites } from './renderer';
 import { executeAITurn } from './ai';
@@ -66,7 +68,14 @@ function updateUI(): void {
         // Show action status
         const moveStatus = gameState.selectedUnit.movementRemaining > 0 ? `${gameState.selectedUnit.movementRemaining}` : '✗';
         const actStatus = gameState.selectedUnit.hasActed ? '✗' : '✓';
-        document.getElementById('u-status')!.textContent = `Move:${moveStatus} Act:${actStatus}`;
+        let statusText = `Move:${moveStatus} Act:${actStatus}`;
+        
+        // Show settle option for settlers
+        if (canSettle(gameState.selectedUnit)) {
+            statusText += ' | [B] Found City';
+        }
+        
+        document.getElementById('u-status')!.textContent = statusText;
     } else {
         uiOverlay.style.display = 'none';
     }
@@ -247,6 +256,13 @@ function onContextMenu(e: Event): void {
 
 function onKeyDown(e: KeyboardEvent): void {
     keysPressed.add(e.key.toLowerCase());
+    
+    // 'B' key - Build/Found City (settle action)
+    if (e.key.toLowerCase() === 'b' && gameState.selectedUnit && canSettle(gameState.selectedUnit)) {
+        settleCity(gameState.selectedUnit);
+        draw();
+        updateUI();
+    }
 }
 
 function onKeyUp(e: KeyboardEvent): void {

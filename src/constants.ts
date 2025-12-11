@@ -11,7 +11,10 @@ export const BOARD_ROWS = 80;
 export const COLORS: Colors = {
     gridStroke: '#3e3e5e',
     player: '#4cc9f0',
-    enemy: '#f72585',
+    enemy1: '#f72585',    // Pink/Magenta
+    enemy2: '#ff9f1c',    // Orange
+    enemy3: '#7b2cbf',    // Purple
+    enemy4: '#2ec4b6',    // Teal
     select: '#ffffff',
     move: 'rgba(76, 201, 240, 0.3)',
     attack: 'rgba(247, 37, 133, 0.3)',
